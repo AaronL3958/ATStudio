@@ -1,10 +1,10 @@
 import {ApiError,bucket,db} from '../common';
 import type {GalleryPost} from '../../gallery-data';
-export type PostRow={id:string;project_id:string;owner:string;author:string;title:string;description:string;settings:string;assets:string;cover_key:string;analysis_key:string;duration:number;published:number;created_at:number;updated_at:number;revision:string};
+export type PostRow={id:string;project_id:string;owner:string;author:string;title:string;description:string;settings:string;assets:string;cover_key:string;analysis_key:string;duration:number;published:number;created_at:number;updated_at:number;revision:string;video_key:string|null;video_token:string|null;video_size:number|null};
 export const shareKinds=['audio','background','center','font'] as const;
 export function present(row:PostRow,viewer:string,detail=false):GalleryPost{
  const settings=JSON.parse(row.settings),assets=JSON.parse(row.assets);
- return {id:row.id,title:row.title,description:row.description,author:row.author,published:!!row.published,mine:row.owner===viewer,style:settings.style,duration:row.duration,created_at:row.created_at,updated_at:row.updated_at,revision:row.revision,...(row.owner===viewer?{project_id:row.project_id}:{}),...(detail?{settings,media:Object.keys(assets)}:{})};
+ return {id:row.id,title:row.title,description:row.description,author:row.author,published:!!row.published,mine:row.owner===viewer,style:settings.style,duration:row.duration,created_at:row.created_at,updated_at:row.updated_at,revision:row.revision,video_token:row.published?row.video_token:null,...(row.owner===viewer?{project_id:row.project_id}:{}),...(detail?{settings,media:Object.keys(assets)}:{})};
 }
 export async function accessiblePost(id:string,viewer:string){
  const row=await db().prepare('SELECT * FROM gallery_posts WHERE id=? AND (published=1 OR owner=?)').bind(id,viewer).first<PostRow>();

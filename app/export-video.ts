@@ -1,9 +1,9 @@
 import {draw,type Settings,type Analysis,type Artwork} from './visualizer';
-export async function exportVideo(s:Settings,buffer:AudioBuffer,analysis:Analysis,art:Artwork,seconds:number,onProgress:(p:number)=>void,signal:AbortSignal):Promise<Blob>{
+export async function exportVideo(s:Settings,buffer:AudioBuffer,analysis:Analysis,art:Artwork,seconds:number,onProgress:(p:number)=>void,signal:AbortSignal,compact=false):Promise<Blob>{
  const {Output,Mp4OutputFormat,BufferTarget,CanvasSource,AudioBufferSource,Quality,canEncodeVideo,canEncodeAudio}=await import('mediabunny');
- const width=s.resolution*16/9,height=s.resolution,fps=s.fps,duration=Math.min(seconds,buffer.duration),quality=new Quality({bitrate:s.resolution===1440?24e6:s.resolution===1080?14e6:8e6});
+ const width=s.resolution*16/9,height=s.resolution,fps=s.fps,duration=Math.min(seconds,buffer.duration),quality=new Quality({bitrate:compact?Math.min(4000000,Math.floor(70_000_000*8/duration)-192000):s.resolution===1440?24e6:s.resolution===1080?14e6:8e6});
  if(!await canEncodeVideo('avc',{width,height,frameRate:fps,quality}))throw new Error('H.264 encoding is unavailable at this resolution. Try 720p or open ATStudio in desktop Chrome or Edge.');
- let audioBitrate=0;for(const rate of [320000,256000,192000,128000]){if(await canEncodeAudio('aac',{sampleRate:buffer.sampleRate,numberOfChannels:Math.min(2,buffer.numberOfChannels),quality:new Quality({bitrate:rate})})){audioBitrate=rate;break;}}if(!audioBitrate)throw new Error('AAC audio encoding is unavailable in this browser. Open ATStudio in desktop Chrome or Edge.');
+ let audioBitrate=0;for(const rate of (compact?[192000,128000]:[320000,256000,192000,128000])){if(await canEncodeAudio('aac',{sampleRate:buffer.sampleRate,numberOfChannels:Math.min(2,buffer.numberOfChannels),quality:new Quality({bitrate:rate})})){audioBitrate=rate;break;}}if(!audioBitrate)throw new Error('AAC audio encoding is unavailable in this browser. Open ATStudio in desktop Chrome or Edge.');
  const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
  const target=new BufferTarget(),output=new Output({format:new Mp4OutputFormat({fastStart:'in-memory'}),target});
  const video=new CanvasSource(canvas,{codec:'avc',quality,keyFrameInterval:2}),audio=new AudioBufferSource({codec:'aac',quality:new Quality({bitrate:audioBitrate})});output.addVideoTrack(video,{frameRate:fps});output.addAudioTrack(audio);await output.start();

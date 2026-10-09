@@ -43,6 +43,13 @@
       "when": 1791562303460,
       "tag": "0005_sloppy_clint_barton",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1791565067240,
+      "tag": "0006_perpetual_loa",
+      "breakpoints": true
     }
   ]
 }

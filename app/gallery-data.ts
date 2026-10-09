@@ -1,5 +1,5 @@
 import type {Settings,Analysis} from './visualizer';
-export type GalleryPost={id:string;title:string;description:string;author:string;published:boolean;mine:boolean;style:string;duration:number;created_at:number;updated_at:number;revision:string;project_id?:string;settings?:Settings;media?:string[]};
+export type GalleryPost={id:string;title:string;description:string;author:string;published:boolean;mine:boolean;style:string;duration:number;created_at:number;updated_at:number;revision:string;video_token?:string|null;project_id?:string;settings?:Settings;media?:string[]};
 export async function galleryRequest(path:string,init?:RequestInit){
  const r=await fetch(path,init),data=await r.json() as {error?:string;post:GalleryPost;posts:GalleryPost[];next:string|null};
  if(!r.ok)throw new Error(data.error||'Could not load the gallery. Please retry.');

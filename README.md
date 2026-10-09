@@ -18,11 +18,14 @@ ATStudio is a browser-based workspace for creating music visualizers and learnin
 
 Publish a playable visualizer directly from **Studio → Share**, or after exporting. Sharing saves a snapshot with a title, description, cover image, and creator credit. Members can browse or search the gallery, play a track, seek, adjust volume, and open the preview fullscreen.
 
-- Gallery posts and share links are accessible to signed-in ATStudio members.
+- Gallery posts are members-only by default. Optional public video sharing renders the full song as a 720p H.264/AAC MP4, accessible without signing in.
 - Projects remain private until their creator explicitly publishes them.
 - Later edits stay private until **Update gallery post** is selected.
 - **My shares** includes published and private posts. **Make private** withdraws a post and its media from other members; already received media cannot be recalled.
-- Deleting the source project removes its gallery post. The gallery does not expose private project or song-library endpoints.
+- **Delete gallery post** removes the post and its shared media while preserving the editable project. **My projects → trash** also removes its gallery post and public video. The gallery does not expose private project or song-library endpoints.
+- **Copy Discord link** includes server-rendered Open Graph video metadata. **Copy MP4 link** provides a direct video URL as a fallback; Discord determines inline playback and may cache media.
+- Making a post private, disabling its public video, deleting it, or publishing a new snapshot revokes the previous public media URL. External cached copies cannot be recalled.
+- Public video uploads stream to storage, are limited to 90 MB, and support HEAD and byte-range requests. Source audio, artwork, and settings remain behind account access controls.
 - Compact, precomputed spectrum data is uploaded once. Gallery playback streams the original audio without rerunning analysis or requiring an MP4 export.
 
 Only publish music, artwork, and fonts you have permission to share.

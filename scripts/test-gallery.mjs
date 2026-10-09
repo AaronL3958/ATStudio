@@ -26,6 +26,22 @@ try{
  assert.equal((await request('/api/gallery',{method:'POST',data:{...publish,motion:'AAAA'}})).status,400);
  assert.equal((await request('/api/gallery',{method:'POST',data:{...publish,version:1}})).status,409);
  post=(await json('/api/gallery',{method:'POST',data:publish},201)).post;
+ const mp4=Buffer.alloc(40);mp4.writeUInt32BE(24);mp4.write('ftypisom',4);
+ const uploadVideo=(who=owner,revision=post.revision,extra={})=>fetch(base+`/api/gallery/${post.id}/video`,{method:'POST',headers:{Cookie:who,Origin:base,'Content-Type':'video/mp4','x-post-revision':revision,'x-public-sharing':'enabled',...extra},body:mp4});
+ const enableVideo=async()=>{const r=await uploadVideo();assert.equal(r.status,201,await r.clone().text());post=(await r.json()).post;return `/api/public-video/${post.video_token}/video.mp4`};
+ assert.equal((await uploadVideo(viewer)).status,404);
+ assert.equal((await uploadVideo(owner,'stale')).status,409);
+ assert.equal((await uploadVideo(owner,post.revision,{'x-public-sharing':'no'})).status,400);
+ let videoUrl=await enableVideo();
+ const publicRange=await request(videoUrl,{cookie:'',headers:{Range:'bytes=0-11'}});assert.equal(publicRange.status,206);assert.equal(publicRange.headers.get('content-type'),'video/mp4');assert.equal((await publicRange.arrayBuffer()).byteLength,12);
+ const head=await request(videoUrl,{cookie:'',method:'HEAD'});assert.equal(head.status,200);assert.equal(head.headers.get('content-length'),'40');
+ const page=await request('/gallery/'+post.id,{cookie:''});const html=await page.text();assert.equal(page.status,200);assert(html.includes('og:video'));assert(html.includes(post.video_token+'/video.mp4'));assert(html.includes('<video'));
+ assert.equal((await request('/api/gallery/'+post.id,{cookie:''})).status,401,'Public video must not expose private source files');
+ assert.equal((await request('/api/gallery/'+post.id+'/video',{method:'DELETE',cookie:viewer,data:{revision:post.revision,token:post.video_token}})).status,409);
+ post=(await json('/api/gallery/'+post.id+'/video',{method:'DELETE',data:{revision:post.revision,token:post.video_token}})).post;
+ assert.equal((await request(videoUrl,{cookie:''})).status,404);
+ assert(!post.video_token);videoUrl=await enableVideo();
+
  const list=await json('/api/gallery?q=Gallery%20access',{cookie:viewer});assert(list.posts.some(p=>p.id===post.id));assert(!list.posts.some(p=>'owner' in p||'assets' in p||'project_id' in p));
  const detail=(await json('/api/gallery/'+post.id,{cookie:viewer})).post;assert.equal(detail.settings.text,'ORIGINAL');assert.deepEqual(detail.media,['audio']);assert.equal(detail.mine,false);
  assert.equal((await request('/api/assets/'+asset,{cookie:viewer})).status,404);
@@ -38,6 +54,7 @@ try{
  assert.equal((await json('/api/gallery/'+post.id,{cookie:viewer})).post.settings.text,'ORIGINAL','Private edits leaked into the published snapshot');
  assert.equal((await request('/api/gallery/'+post.id,{method:'PATCH',cookie:viewer,data:{published:false,revision:post.revision}})).status,404);
  post=(await json('/api/gallery/'+post.id,{method:'PATCH',data:{published:false,revision:post.revision}})).post;
+ assert.equal((await request(videoUrl,{cookie:''})).status,404);
  assert.equal((await request('/api/gallery/'+post.id,{cookie:viewer})).status,404);
  for(const kind of ['cover','motion','audio'])assert.equal((await request(`/api/gallery/${post.id}/media/${kind}`,{cookie:viewer})).status,404);
  assert(!(await json('/api/gallery',{cookie:viewer})).posts.some(p=>p.id===post.id));
@@ -45,8 +62,21 @@ try{
  assert.equal((await request('/api/gallery',{method:'POST',data:{...publish,version:project.version,revision:'stale'}})).status,409);
  post=(await json('/api/gallery',{method:'POST',data:{...publish,version:project.version,revision:post.revision}})).post;
  assert.equal((await json('/api/gallery/'+post.id,{cookie:viewer})).post.settings.text,'PRIVATE EDIT');
+ videoUrl=await enableVideo();
+ post=(await json('/api/gallery',{method:'POST',data:{...publish,version:project.version,revision:post.revision}})).post;
+ assert.equal((await request(videoUrl,{cookie:''})).status,404,'Republishing must revoke the old render');
+ videoUrl=await enableVideo();
+ assert.equal((await request('/api/gallery/'+post.id,{method:'DELETE',cookie:viewer,data:{revision:post.revision}})).status,404);
+ assert.equal((await request('/api/gallery/'+post.id,{method:'DELETE',data:{revision:'stale'}})).status,409);
+ await json('/api/gallery/'+post.id,{method:'DELETE',data:{revision:post.revision}});
+ assert.equal((await request(videoUrl,{cookie:''})).status,404);
+ assert.equal((await request('/api/projects/'+project.id)).status,200,'Deleting a gallery post must keep its source project');
+ post=(await json('/api/gallery',{method:'POST',data:{...publish,version:project.version}},201)).post;
+ videoUrl=await enableVideo();
  await json('/api/projects/'+project.id,{method:'DELETE'});project=null;
+ assert.equal((await request(videoUrl,{cookie:''})).status,404);
+
  assert.equal((await request('/api/gallery/'+post.id,{cookie:viewer})).status,404);
  assert.equal((await request(`/api/gallery/${post.id}/media/audio`,{cookie:viewer})).status,404);
- console.log('PASS: motion roundtrip, validation, membership, ownership, CSRF, media ranges, snapshot isolation, private edits, stale updates, withdrawal, republishing and project deletion.');
+ console.log('PASS: motion roundtrip, validation, membership, ownership, CSRF, media ranges, snapshot isolation, private edits, stale updates, withdrawal, republishing, public video metadata/ranges, link revocation, independent post deletion and project deletion.');
 }finally{if(project)await request('/api/projects/'+project.id,{method:'DELETE'})}
