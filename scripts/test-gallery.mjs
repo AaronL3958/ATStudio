@@ -1,0 +1,52 @@
+import assert from 'node:assert/strict';
+import {randomBytes} from 'node:crypto';
+import {build} from 'esbuild';
+await build({entryPoints:['app/gallery-data.ts'],outfile:'.sites-runtime/gallery-data-test.mjs',bundle:true,platform:'node',format:'esm'});
+const {packAnalysis,unpackAnalysis,analysisHeader,bytesToBase64}=await import('../.sites-runtime/gallery-data-test.mjs');
+const analysis={duration:1,rate:60,wave:[],frames:Array.from({length:60},()=>Float32Array.from({length:96},(_,i)=>i/95))};
+const packed=packAnalysis(analysis),roundtrip=unpackAnalysis(packed);
+assert.equal(roundtrip.frames.length,60);assert.equal(roundtrip.duration,1);
+assert(Math.abs(roundtrip.frames[0][50]-analysis.frames[0][50])<1/255);
+assert.throws(()=>analysisHeader(packed.slice(0,-1)));
+const bad=packed.slice();new DataView(bad.buffer).setFloat32(4,Infinity,true);assert.throws(()=>analysisHeader(bad));
+const base=process.env.ATSTUDIO_TEST_URL||'http://127.0.0.1:5173';
+assert(['localhost','127.0.0.1'].includes(new URL(base).hostname),'Tests only run against a local preview');
+async function account(){const r=await fetch(base+'/api/account/register',{method:'POST',headers:{Origin:base,'Content-Type':'application/json'},body:JSON.stringify({username:'galleryqa_'+randomBytes(4).toString('hex'),password:randomBytes(24).toString('hex')})});assert.equal(r.status,200,await r.clone().text());return r.headers.getSetCookie().map(v=>v.split(';')[0]).join('; ')}
+const owner=await account(),viewer=await account();
+const request=(path,{method='GET',data,cookie=owner,headers={}}={})=>fetch(base+path,{method,headers:{Cookie:cookie,Origin:base,...(data?{'Content-Type':'application/json'}:{}),...headers},body:data?JSON.stringify(data):undefined});
+async function json(path,options,status=200){const r=await request(path,options),d=await r.json();assert.equal(r.status,status,JSON.stringify(d));return d}
+const created=await json('/api/projects',{method:'POST',data:{name:'Gallery access QA',settings:{text:'ORIGINAL'}}},201);let project=created.project,post;
+try{
+ const upload=await fetch(base+`/api/assets?project=${project.id}&kind=audio`,{method:'POST',headers:{Cookie:owner,Origin:base,'Content-Type':'audio/wav','x-file-name':'test.wav'},body:Buffer.alloc(100)});assert.equal(upload.status,201);const asset=(await upload.json()).id;
+ project=(await json('/api/projects/'+project.id,{method:'PUT',data:{name:project.name,settings:project.settings,assets:{audio:asset},version:project.version}})).project;
+ const publish={project:project.id,version:project.version,title:'Gallery access QA',description:'Local test',cover:Buffer.from([255,216,255,217]).toString('base64'),motion:bytesToBase64(packed)};
+ assert.equal((await request('/api/gallery',{cookie:''})).status,401);
+ assert.equal((await request('/api/gallery',{method:'POST',data:publish,cookie:viewer})).status,404);
+ assert.equal((await request('/api/gallery',{method:'POST',data:publish,headers:{Origin:'https://example.com'}})).status,403);
+ assert.equal((await request('/api/gallery',{method:'POST',data:{...publish,motion:'AAAA'}})).status,400);
+ assert.equal((await request('/api/gallery',{method:'POST',data:{...publish,version:1}})).status,409);
+ post=(await json('/api/gallery',{method:'POST',data:publish},201)).post;
+ const list=await json('/api/gallery?q=Gallery%20access',{cookie:viewer});assert(list.posts.some(p=>p.id===post.id));assert(!list.posts.some(p=>'owner' in p||'assets' in p||'project_id' in p));
+ const detail=(await json('/api/gallery/'+post.id,{cookie:viewer})).post;assert.equal(detail.settings.text,'ORIGINAL');assert.deepEqual(detail.media,['audio']);assert.equal(detail.mine,false);
+ assert.equal((await request('/api/assets/'+asset,{cookie:viewer})).status,404);
+ assert.equal((await request(`/api/gallery/${post.id}/media/audio`,{cookie:''})).status,401);
+ const range=await request(`/api/gallery/${post.id}/media/audio`,{cookie:viewer,headers:{Range:'bytes=10-19'}});assert.equal(range.status,206);assert.equal(range.headers.get('content-range'),'bytes 10-19/100');assert.equal((await range.arrayBuffer()).byteLength,10);
+ assert.equal((await request(`/api/gallery/${post.id}/media/audio`,{cookie:viewer,headers:{Range:'bytes=999-1000'}})).status,416);
+ assert.equal((await request(`/api/gallery/${post.id}/media/lesson`,{cookie:viewer})).status,404);
+ assert.equal((await request(`/api/gallery/${post.id}/media/motion?v=stale`,{cookie:viewer})).status,409);
+ project=(await json('/api/projects/'+project.id,{method:'PUT',data:{name:project.name,settings:{...project.settings,text:'PRIVATE EDIT'},assets:project.assets,version:project.version}})).project;
+ assert.equal((await json('/api/gallery/'+post.id,{cookie:viewer})).post.settings.text,'ORIGINAL','Private edits leaked into the published snapshot');
+ assert.equal((await request('/api/gallery/'+post.id,{method:'PATCH',cookie:viewer,data:{published:false,revision:post.revision}})).status,404);
+ post=(await json('/api/gallery/'+post.id,{method:'PATCH',data:{published:false,revision:post.revision}})).post;
+ assert.equal((await request('/api/gallery/'+post.id,{cookie:viewer})).status,404);
+ for(const kind of ['cover','motion','audio'])assert.equal((await request(`/api/gallery/${post.id}/media/${kind}`,{cookie:viewer})).status,404);
+ assert(!(await json('/api/gallery',{cookie:viewer})).posts.some(p=>p.id===post.id));
+ assert((await json('/api/gallery?mine=1')).posts.some(p=>p.id===post.id&&!p.published));
+ assert.equal((await request('/api/gallery',{method:'POST',data:{...publish,version:project.version,revision:'stale'}})).status,409);
+ post=(await json('/api/gallery',{method:'POST',data:{...publish,version:project.version,revision:post.revision}})).post;
+ assert.equal((await json('/api/gallery/'+post.id,{cookie:viewer})).post.settings.text,'PRIVATE EDIT');
+ await json('/api/projects/'+project.id,{method:'DELETE'});project=null;
+ assert.equal((await request('/api/gallery/'+post.id,{cookie:viewer})).status,404);
+ assert.equal((await request(`/api/gallery/${post.id}/media/audio`,{cookie:viewer})).status,404);
+ console.log('PASS: motion roundtrip, validation, membership, ownership, CSRF, media ranges, snapshot isolation, private edits, stale updates, withdrawal, republishing and project deletion.');
+}finally{if(project)await request('/api/projects/'+project.id,{method:'DELETE'})}

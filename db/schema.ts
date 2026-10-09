@@ -14,3 +14,7 @@ export const presets=sqliteTable('presets',{id:text('id').primaryKey(),owner:tex
 export const songs=sqliteTable('songs',{id:text('id').primaryKey(),owner:text('owner').notNull(),hash:text('hash').notNull(),name:text('name').notNull(),type:text('type').notNull(),size:integer('size').notNull(),objectKey:text('object_key').notNull(),createdAt:integer('created_at').notNull()},t=>[uniqueIndex('songs_owner_hash').on(t.owner,t.hash),index('songs_owner_created').on(t.owner,t.createdAt)]);
 
 export const preferences=sqliteTable('preferences',{owner:text('owner').primaryKey(),settings:text('settings').notNull()});
+
+export const galleryPosts=sqliteTable('gallery_posts',{
+ id:text('id').primaryKey(),projectId:text('project_id').notNull().unique().references(()=>projects.id,{onDelete:'cascade'}),owner:text('owner').notNull(),author:text('author').notNull(),title:text('title').notNull(),description:text('description').notNull(),settings:text('settings').notNull(),assets:text('assets').notNull(),coverKey:text('cover_key').notNull(),analysisKey:text('analysis_key').notNull(),duration:integer('duration').notNull(),published:integer('published').notNull().default(0),createdAt:integer('created_at').notNull(),updatedAt:integer('updated_at').notNull(),revision:text('revision').notNull()
+},t=>[index('gallery_public_created').on(t.published,t.createdAt,t.id),index('gallery_owner_created').on(t.owner,t.createdAt,t.id)]);

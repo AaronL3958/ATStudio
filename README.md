@@ -13,6 +13,19 @@ ATStudio is a browser-based workspace for creating music visualizers and learnin
 - Private projects and an account-owned song library.
 - MP4 export at 720p, 1080p, and 1440p, with 24, 30, or 60 fps output.
 
+## Community gallery
+
+Publish a playable visualizer directly from **Studio → Share**, or after exporting. Sharing saves a snapshot with a title, description, cover image, and creator credit. Members can browse or search the gallery, play a track, seek, adjust volume, and open the preview fullscreen.
+
+- Gallery posts and share links are accessible to signed-in ATStudio members.
+- Projects remain private until their creator explicitly publishes them.
+- Later edits stay private until **Update gallery post** is selected.
+- **My shares** includes published and private posts. **Make private** withdraws a post and its media from other members; already received media cannot be recalled.
+- Deleting the source project removes its gallery post. The gallery does not expose private project or song-library endpoints.
+- Compact, precomputed spectrum data is uploaded once. Gallery playback streams the original audio without rerunning analysis or requiring an MP4 export.
+
+Only publish music, artwork, and fonts you have permission to share.
+
 ## Learn (Beta)
 
 - MusicX chord recognition with editable chord boundaries, key, and tempo estimates.
@@ -67,6 +80,7 @@ node scripts/verify-api.mjs
 node scripts/test-accounts.mjs
 node scripts/test-preferences.mjs
 node scripts/test-motion-presets.mjs
+node scripts/test-gallery.mjs
 ```
 
 Use a disposable local database for API tests. They create synthetic accounts and data. Rate-limit tests may require a cooldown before repeating.

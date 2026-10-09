@@ -36,6 +36,13 @@
       "when": 1791554907212,
       "tag": "0004_graceful_cloak",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1791562303460,
+      "tag": "0005_sloppy_clint_barton",
+      "breakpoints": true
     }
   ]
 }
