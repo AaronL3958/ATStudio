@@ -1,3 +1,5 @@
+import {backgroundMotion,backgroundMotionDefaults,type BackgroundMotionSettings} from './background-effects';
+import {drawBlurredBackground} from './background-renderer';
 import {bassEffectDefaults,bassEffects,drawParticles,reactiveBlur,type BassEffectSettings} from './bass-effects';
 import {circleMotion,circleMotionDefaults,type CircleMotionSettings} from './circle-motion';
 import {cover} from './image-crop';
@@ -10,8 +12,8 @@ export const spectrumStyles=[
  {id:'bars',name:'Pillars',detail:'Rounded radial bars'},
  {id:'line',name:'Wave',detail:'Smooth mirrored wave'},
 ] as const;
-export type Settings=AnimationSettings & BassEffectSettings & CircleMotionSettings & {sourceUrl:string;style:typeof spectrumStyles[number]['id'];color:string;color2:string;gradient:boolean;bass:number;mids:number;treble:number;bassCeiling:number;roundness:number;fill:number;smoothing:number;sensitivity:number;radius:number;amplitude:number;thickness:number;glow:number;rotation:number;x:number;y:number;particles:number;pulse:number;blur:number;dim:number;background:string;backgroundZoom:number;backgroundX:number;backgroundY:number;centerZoom:number;centerX:number;centerY:number;text:string;subtitle:string;font:string;fontSize:number;textColor:string;textX:number;textY:number;logoText:string;resolution:number;fps:number};
-export const defaults:Settings={...animationDefaults,...bassEffectDefaults,...circleMotionDefaults,sourceUrl:'',style:'bloom',color:'#e5c9a4',color2:'#b78b63',gradient:true,bass:1.6,mids:0,treble:0,bassCeiling:180,roundness:.8,fill:.95,smoothing:.65,sensitivity:1,radius:18,amplitude:85,thickness:3,glow:24,rotation:0,x:50,y:46,particles:45,pulse:.45,blur:0,dim:25,background:'#19120f',backgroundZoom:1,backgroundX:50,backgroundY:50,centerZoom:1,centerX:50,centerY:50,text:'AFTER HOURS',subtitle:'ATSTUDIO  /  ORIGINAL MIX',font:'Arial',fontSize:32,textColor:'#ffffff',textX:50,textY:84,logoText:'AT',resolution:1080,fps:30};
+export type Settings=BackgroundMotionSettings & AnimationSettings & BassEffectSettings & CircleMotionSettings & {sourceUrl:string;style:typeof spectrumStyles[number]['id'];color:string;color2:string;gradient:boolean;bass:number;mids:number;treble:number;bassCeiling:number;roundness:number;fill:number;smoothing:number;sensitivity:number;radius:number;amplitude:number;thickness:number;glow:number;rotation:number;x:number;y:number;particles:number;pulse:number;blur:number;dim:number;background:string;backgroundZoom:number;backgroundX:number;backgroundY:number;centerZoom:number;centerX:number;centerY:number;text:string;subtitle:string;font:string;fontSize:number;textColor:string;textX:number;textY:number;logoText:string;resolution:number;fps:number};
+export const defaults:Settings={...backgroundMotionDefaults,...animationDefaults,...bassEffectDefaults,...circleMotionDefaults,sourceUrl:'',style:'bloom',color:'#e5c9a4',color2:'#b78b63',gradient:true,bass:1.6,mids:0,treble:0,bassCeiling:180,roundness:.8,fill:.95,smoothing:.65,sensitivity:1,radius:18,amplitude:85,thickness:3,glow:24,rotation:0,x:50,y:46,particles:45,pulse:.45,blur:0,dim:25,background:'#19120f',backgroundZoom:1,backgroundX:50,backgroundY:50,centerZoom:1,centerX:50,centerY:50,text:'AFTER HOURS',subtitle:'ATSTUDIO  /  ORIGINAL MIX',font:'Arial',fontSize:32,textColor:'#ffffff',textX:50,textY:84,logoText:'AT',resolution:1080,fps:30};
 export type Analysis={frames:Float32Array[];duration:number;rate:number;wave:number[]};
 export type Artwork={background?:HTMLImageElement;center?:HTMLImageElement};
 const N=4096;
@@ -69,8 +71,11 @@ export function draw(canvas:HTMLCanvasElement,settings:Settings,time:number,a?:A
  const effects=bassEffects(a,time,s),backgroundBlur=reactiveBlur(s,effects.level);
  const animation=sequenceAnimation(time,sequenceDuration,s),opacity=animation.opacity;
  c.clearRect(0,0,w,h);c.fillStyle=s.background;c.fillRect(0,0,w,h);
- if(art.background){c.save();c.filter=`blur(${backgroundBlur*k}px)`;const pad=(s.blur+(s.bassBlur?s.bassBlurAmount:0))*k*3;cover(c,art.background,-pad*w/h,-pad,w+pad*2*w/h,h+pad*2,{zoom:s.backgroundZoom,x:s.backgroundX,y:s.backgroundY});c.restore();}
- else{const g=c.createRadialGradient(w*.52,h*.38,0,w*.5,h*.5,w*.7);g.addColorStop(0,s.color2+'30');g.addColorStop(.45,s.background);g.addColorStop(1,'#04080b');c.fillStyle=g;c.fillRect(0,0,w,h);}
+ const bgMotion=backgroundMotion(time,effects,s),pad=((s.blur+(s.bassBlur?s.bassBlurAmount:0))*3+(s.backgroundShake?s.backgroundShakeAmount:0))*k;
+ c.save();c.translate(w/2+bgMotion.x*k,h/2+bgMotion.y*k);c.scale(bgMotion.scale,bgMotion.scale);c.translate(-w/2,-h/2);
+ if(art.background)drawBlurredBackground(c,canvas,art.background,{zoom:s.backgroundZoom,x:s.backgroundX,y:s.backgroundY},pad,backgroundBlur,s.background);
+ else{const g=c.createRadialGradient(w*.52,h*.38,0,w*.5,h*.5,w*.7);g.addColorStop(0,s.color2+'30');g.addColorStop(.45,s.background);g.addColorStop(1,'#04080b');c.fillStyle=g;c.fillRect(-pad*w/h,-pad,w+pad*2*w/h,h+pad*2);}
+ c.restore();
  c.fillStyle=`rgba(0,0,0,${s.dim/100})`;c.fillRect(0,0,w,h);
  if(s.fadeBackground&&opacity<1){c.fillStyle=`rgba(0,0,0,${1-opacity})`;c.fillRect(0,0,w,h);}
  const movement=circleMotion(time,effects,s),cx=w*s.x/100+movement.x*k,cy=h*s.y/100+movement.y*k,r=h*s.radius/100*(1+bass*s.pulse*.13);
