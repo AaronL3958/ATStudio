@@ -9,7 +9,8 @@ ATStudio is a browser-based workspace for creating music visualizers and learnin
 - Six spectrum styles with smooth, bass-only response and live preview.
 - Custom background and center artwork with crop, blur, color, and typography controls.
 - Independent circle motion, reactive particles, and intro/outro animations.
-- Reusable presets, private projects, and an account-owned song library.
+- Nine curated visualizer looks with spectrum previews, coordinated motion and particles, plus reusable personal presets.
+- Private projects and an account-owned song library.
 - MP4 export at 720p, 1080p, and 1440p, with 24, 30, or 60 fps output.
 
 ## Learn (Beta)
@@ -53,6 +54,7 @@ Clone the repository on the second computer and open that folder in your editor.
 
 ```sh
 npx tsc --noEmit
+node scripts/test-factory-presets.mjs
 node scripts/test-arrangement.mjs
 node scripts/test-learning.mjs
 node scripts/verify-audio.mjs
