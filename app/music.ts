@@ -3,18 +3,20 @@ export const qualities:Record<string,number[]>={'':[0,4,7],m:[0,3,7],'7':[0,4,7,
 export const chordNames=['N',...pitches.flatMap(p=>['','m','7','maj7','m7','sus2','sus4','dim','aug'].map(q=>p+q))];
 export type Chord={start:number;end:number;name:string;strength:number;edited?:boolean};
 export type PianoNote={pitch:number;start:number;duration:number;velocity:number;hand:'left'|'right'};
-export type Lesson={version:1;duration:number;bpm:number;key:string;offset:number;meter:3|4|6;chords:Chord[];notes:PianoNote[];pianoStatus:'none'|'draft';split:number;capo:number;video:string;videoOffset:number};
-export const emptyLesson=(duration:number):Lesson=>({version:1,duration,bpm:120,key:'Unknown',offset:0,meter:4,chords:[],notes:[],pianoStatus:'none',split:60,capo:0,video:'',videoOffset:0});
+export type Lesson={chordOffset?:number;keyAlternatives?:string[];chordEngine?:string;arrangementVersion?:number;version:1;duration:number;bpm:number;key:string;offset:number;meter:3|4|6;chords:Chord[];notes:PianoNote[];pianoStatus:'none'|'draft';split:number;capo:number;video:string;videoOffset:number};
+export const emptyLesson=(duration:number):Lesson=>({version:1,duration,bpm:120,key:'Unknown',offset:0,meter:4,chords:[],notes:[],pianoStatus:'none',split:55,capo:0,video:'',videoOffset:0});
 export function parseLesson(value:unknown):Lesson{
  const x=value as Lesson,finite=(n:number)=>typeof n==='number'&&Number.isFinite(n);
  if(!x||x.version!==1||!finite(x.duration)||x.duration<=0||x.duration>601||!finite(x.bpm)||x.bpm<30||x.bpm>260||!finite(x.offset)||Math.abs(x.offset)>30||![3,4,6].includes(x.meter)||!Number.isInteger(x.split)||x.split<36||x.split>84||!Number.isInteger(x.capo)||x.capo<0||x.capo>11||typeof x.key!=='string'||x.key.length>40||typeof x.video!=='string'||x.video.length>300||!finite(x.videoOffset)||Math.abs(x.videoOffset)>300||!['none','draft'].includes(x.pianoStatus)||!Array.isArray(x.chords)||x.chords.length>10000||!Array.isArray(x.notes)||x.notes.length>100000)throw new Error('This saved lesson is invalid.');
  for(const c of x.chords)if(!finite(c.start)||!finite(c.end)||c.start<0||c.end<=c.start||c.end>x.duration+.1||!chordNames.includes(c.name)||!finite(c.strength)||c.strength<0||c.strength>1)throw new Error('Invalid saved chord chart.');
  for(const n of x.notes)if(!Number.isInteger(n.pitch)||n.pitch<21||n.pitch>108||!finite(n.start)||n.start<0||!finite(n.duration)||n.duration<=0||n.start+n.duration>x.duration+.1||!finite(n.velocity)||n.velocity<0||n.velocity>1||!['left','right'].includes(n.hand))throw new Error('Invalid saved piano notes.');
+ if(x.chordOffset!==undefined&&(!finite(x.chordOffset)||Math.abs(x.chordOffset)>3))throw new Error('Invalid chord timing.');
+ if(x.keyAlternatives!==undefined&&(!Array.isArray(x.keyAlternatives)||x.keyAlternatives.length>3||x.keyAlternatives.some(k=>typeof k!=='string'||k.length>40)))throw new Error('Invalid key candidates.');
+ if(x.chordEngine!==undefined&&(typeof x.chordEngine!=='string'||x.chordEngine.length>100))throw new Error('Invalid analysis engine.');
  return {...x,chords:x.chords.slice().sort((a,b)=>a.start-b.start),notes:x.notes.slice().sort((a,b)=>a.start-b.start)};
 }
 export const noteName=(midi:number)=>pitches[midi%12]+(Math.floor(midi/12)-1);
 export function chordParts(name:string){const match=/^([A-G]#?)(.*)$/.exec(name);return match?{root:pitches.indexOf(match[1]),quality:match[2]}:null}
-export function youtubeId(value:string){try{const u=new URL(value),host=u.hostname.replace(/^www\./,'');const id=host==='youtu.be'?u.pathname.slice(1):['youtube.com','m.youtube.com','youtube-nocookie.com'].includes(host)?u.searchParams.get('v')||/^\/(?:embed|shorts)\/([^/]+)/.exec(u.pathname)?.[1]:null;return /^[-\w]{11}$/.test(id||'')?id:null}catch{return null}}
 export function guitarShape(name:string,capo=0):number[]|null{
  const p=chordParts(name);if(!p)return null;const root=(p.root-capo+12)%12,key=pitches[root]+p.quality;
  const open:Record<string,number[]>={C:[-1,3,2,0,1,0],D:[-1,-1,0,2,3,2],E:[0,2,2,1,0,0],G:[3,2,0,0,0,3],A:[-1,0,2,2,2,0],Am:[-1,0,2,2,1,0],Dm:[-1,-1,0,2,3,1],Em:[0,2,2,0,0,0],C7:[-1,3,2,3,1,0],D7:[-1,-1,0,2,1,2],E7:[0,2,0,1,0,0],G7:[3,2,0,0,0,1],A7:[-1,0,2,0,2,0],Am7:[-1,0,2,0,1,0],Em7:[0,2,0,0,0,0],Dm7:[-1,-1,0,2,1,1],Cmaj7:[-1,3,2,0,0,0],Amaj7:[-1,0,2,1,2,0],Dmaj7:[-1,-1,0,2,2,2],Asus2:[-1,0,2,2,0,0],Asus4:[-1,0,2,2,3,0],Dsus2:[-1,-1,0,2,3,0],Dsus4:[-1,-1,0,2,3,3]};

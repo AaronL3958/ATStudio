@@ -74,7 +74,8 @@ export function draw(canvas:HTMLCanvasElement,settings:Settings,time:number,a?:A
  c.fillStyle=`rgba(0,0,0,${s.dim/100})`;c.fillRect(0,0,w,h);
  if(s.fadeBackground&&opacity<1){c.fillStyle=`rgba(0,0,0,${1-opacity})`;c.fillRect(0,0,w,h);}
  const movement=circleMotion(time,effects,s),cx=w*s.x/100+movement.x*k,cy=h*s.y/100+movement.y*k,r=h*s.radius/100*(1+bass*s.pulse*.13);
- drawParticles(c,s,time,effects,w,h,cx,cy,h*s.radius/100+12*k,opacity);
+ // Particles have their own fixed origin; only the centerpiece follows motion.
+ drawParticles(c,s,time,effects,w,h,w*s.x/100,h*s.y/100,h*s.radius/100+12*k,opacity);
  c.save();c.globalAlpha=opacity;c.translate(cx,cy+animation.y*h);c.scale(animation.scale,animation.scale);c.rotate(s.rotation*Math.PI/180+animation.rotation+movement.rotation);
  const gradient=c.createLinearGradient(-r,-r,r,r);gradient.addColorStop(0,s.color);gradient.addColorStop(1,s.gradient?s.color2:s.color);
  c.strokeStyle=gradient;c.fillStyle=gradient;c.lineWidth=s.thickness*k;c.lineJoin='round';c.lineCap='round';c.shadowColor=s.color;c.shadowBlur=s.glow*k;

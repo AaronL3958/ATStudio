@@ -5,9 +5,9 @@ export type BassEffectSettings={
  bassBlur:boolean;bassBlurAmount:number;bassBlurSensitivity:number;
 };
 export const bassEffectDefaults:BassEffectSettings={particleDirection:'outward',particleBrightness:.85,particleSize:3.5,particleColor:'#ffe6c0',particleSpeed:.6,particleBassSpeed:3,particleBassGlow:.65,particleTrail:.35,effectSensitivity:1.6,effectThreshold:.18,effectRelease:.25,bassBlur:false,bassBlurAmount:18,bassBlurSensitivity:1};
-type Envelope={key:string;levels:Float32Array;integral:Float64Array};
+type Envelope={key:string;levels:Float32Array;motion:Float32Array;integral:Float64Array};
 const envelopes=new WeakMap<Analysis,Envelope>();
-export type BassEffectState={level:number;distance:number};
+export type BassEffectState={level:number;distance:number;motionLevel?:number};
 
 // Integrate velocity over the audio timeline, rather than multiplying position
 // by the current bass level. Hits accelerate particles without teleporting them.
@@ -17,19 +17,23 @@ export function bassEffects(a:Analysis|undefined,time:number,s:BassEffectSetting
  const key=[s.bassCeiling,s.effectSensitivity,s.effectThreshold,s.effectRelease].join(':');
  let envelope=envelopes.get(a);
  if(!envelope||envelope.key!==key){
-  const levels=new Float32Array(a.frames.length),integral=new Float64Array(a.frames.length);
+  const levels=new Float32Array(a.frames.length),motion=new Float32Array(a.frames.length),integral=new Float64Array(a.frames.length);
   const last=Math.max(1,Math.floor(Math.log(s.bassCeiling/30)/Math.log(600)*96)-1),attack=Math.exp(-1/(a.rate*.025)),release=Math.exp(-1/(a.rate*s.effectRelease));
-  let value=0;
+  let value=0,motionTarget=0,motionValue=0;
+  const motionDecay=Math.exp(-1/(a.rate*.10));
   for(let i=0;i<a.frames.length;i++){
    let raw=0;for(let b=0;b<=last;b++)raw+=a.frames[i][b];raw/=last+1;
    const target=Math.min(1,Math.max(0,(raw-s.effectThreshold)/(1-s.effectThreshold))*s.effectSensitivity),decay=target>value?attack:release;
    value=target+(value-target)*decay;levels[i]=value;
+   // Two low-pass stages soften onset and release for the circle independently.
+   motionTarget=value+(motionTarget-value)*motionDecay;
+   motionValue=motionTarget+(motionValue-motionTarget)*motionDecay;motion[i]=motionValue;
    if(i)integral[i]=integral[i-1]+(levels[i-1]+levels[i])/(2*a.rate);
   }
-  envelope={key,levels,integral};envelopes.set(a,envelope);
+  envelope={key,levels,motion,integral};envelopes.set(a,envelope);
  }
  const position=Math.max(0,Math.min(a.frames.length-1,time*a.rate)),i=Math.floor(position),fraction=position-i,first=envelope.levels[i],next=envelope.levels[Math.min(i+1,a.frames.length-1)];
- return{level:first+(next-first)*fraction,distance:envelope.integral[i]+(first*fraction+(next-first)*fraction*fraction/2)/a.rate};
+ return{level:first+(next-first)*fraction,motionLevel:envelope.motion[i]+(envelope.motion[Math.min(i+1,a.frames.length-1)]-envelope.motion[i])*fraction,distance:envelope.integral[i]+(first*fraction+(next-first)*fraction*fraction/2)/a.rate};
 }
 export function particleTravel(time:number,bass:BassEffectState,s:BassEffectSettings){return Math.max(0,time)*s.particleSpeed+bass.distance*s.particleBassSpeed;}
 export function reactiveBlur(s:BassEffectSettings&{blur:number},level:number){return s.blur+(s.bassBlur?s.bassBlurAmount*Math.min(1,Math.max(0,level)*s.bassBlurSensitivity):0);}

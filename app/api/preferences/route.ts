@@ -1,0 +1,4 @@
+import {ApiError,body,db,handle,identity,json} from '../common';
+import {defaultPreferences,validatePreferences} from '../../preferences';
+export async function GET(req:Request){return handle(async()=>{const owner=await identity(req),row=await db().prepare('SELECT settings FROM preferences WHERE owner=?').bind(owner).first<{settings:string}>();return json({preferences:row?JSON.parse(row.settings):defaultPreferences})})}
+export async function PUT(req:Request){return handle(async()=>{if(req.headers.get('origin')!==new URL(req.url).origin)throw new ApiError(403,'Save settings from ATStudio.');const owner=await identity(req);let preferences;try{preferences=validatePreferences(await body(req))}catch{throw new ApiError(400,'Invalid appearance settings.')}await db().prepare('INSERT INTO preferences (owner,settings) VALUES (?,?) ON CONFLICT(owner) DO UPDATE SET settings=excluded.settings').bind(owner,JSON.stringify(preferences)).run();return json({preferences})})}

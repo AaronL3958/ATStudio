@@ -23,4 +23,8 @@ assert(!Object.hasOwn(look.settings,'sourceUrl'));assert(!Object.hasOwn(look.set
 let trace=[];const gradient={addColorStop(){}};const context=new Proxy({}, {get:(_,key)=>key==='createLinearGradient'||key==='createRadialGradient'?()=>gradient:(...args)=>{if(['translate','rotate','scale'].includes(key))trace.push([key,...args])},set:()=>true});
 const canvas={width:1920,height:1080,getContext:()=>context},audio={duration:4,rate:60,wave:[],frames:Array.from({length:240},()=>new Float32Array(96).fill(.7))};
 draw(canvas,{...applied,introStyle:'none'},1.3,audio);const first=structuredClone(trace);trace=[];draw(canvas,applied,3,audio);trace=[];draw(canvas,{...applied,introStyle:'none'},1.3,audio);assert.deepEqual(trace,first);
-console.log('PASS: bass-gated continuous bounded circle motion, deterministic canvas transforms, preset round-trip, project preservation, custom font preservation and invalid preset rejection.');
+// Particle coordinates must remain identical when only circle motion changes.
+function particleTrace(settings){let arcs=[];const c=new Proxy({}, {get:(_,key)=>key==='createLinearGradient'||key==='createRadialGradient'?()=>gradient:(...args)=>{if(key==='arc')arcs.push(args)},set:()=>true});draw({width:1920,height:1080,getContext:()=>c},{...defaults,style:'fluid',introStyle:'none',particles:25,...settings},1.3,audio);return arcs.slice(0,75)}
+assert.deepEqual(particleTrace({circleShake:0,circleDrift:0}),particleTrace({circleShake:50,circleDrift:120,circleTilt:15}),'Circle motion must not move the particle field');
+assert(Object.values(circleMotion(1,{level:1,motionLevel:0,distance:0},{...d,circleShake:40})).every(v=>v===0),'Circle uses its own eased energy, not the sharp particle envelope');
+console.log('PASS: independent particles, eased circle energy, bass-gated continuous bounded motion, deterministic seeking, preset round-trip and project preservation.');

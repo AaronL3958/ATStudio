@@ -9,6 +9,7 @@ export async function POST(req:Request,{params}:{params:Promise<{action:string}>
  if(req.headers.get('origin')!==new URL(req.url).origin)throw new ApiError(403,'Please submit this form from ATStudio.');
  const {action}=await params;
  if(action==='logout'||action==='legacy'){const value=cookieValue(req.headers.get('cookie'),(new URL(req.url).protocol==='https:'?'__Host-':'')+'atstudio_session');if(value)await db().prepare('DELETE FROM account_sessions WHERE token_hash=?').bind(digest(value)).run();const r=json({ok:true});r.headers.append('Set-Cookie',accountCookie(req,'atstudio_session','',0));r.headers.append('Set-Cookie',accountCookie(req,'atstudio_guest',action==='legacy'?'':'1',action==='legacy'?0:sessionAge));return r}
+ if(['register','login','recover'].includes(action)&&(await getAppUser())?.kind==='account')throw new ApiError(409,'You are already signed in. Log out before using another account.');
  if(!['register','login','recover'].includes(action))throw new ApiError(404,'Unknown account action.');
  if(!req.headers.get('content-type')?.startsWith('application/json'))throw new ApiError(415,'Use a JSON account request.');
  const data=await body(req);if(!data||typeof data!=='object'||Array.isArray(data))throw new ApiError(400,'Invalid account request.');const username=typeof data.username==='string'?data.username.trim().toLowerCase():'';
