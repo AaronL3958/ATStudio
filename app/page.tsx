@@ -1,7 +1,7 @@
 import Studio from './studio';
-import { getChatGPTUser } from './chatgpt-auth';
+import { getAppUser } from './account-auth';
 export const dynamic = 'force-dynamic';
 export default async function Home() {
- const user=await getChatGPTUser();
- return <Studio user={user?{name:user.displayName,email:user.email}:null}/>;
+ const user=await getAppUser();
+ return <Studio user={user?{name:user.name,email:user.email,kind:user.kind}:null}/>;
 }

@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict';
+import {randomBytes} from 'node:crypto';
+const base='http://127.0.0.1:5173',suffix=randomBytes(4).toString('hex'),password=randomBytes(24).toString('hex');
+const request=(path,{cookie='',method='GET',data,origin=base}={})=>fetch(base+path,{method,headers:{Origin:origin,Cookie:cookie,...(data?{'Content-Type':'application/json'}:{})},body:data?JSON.stringify(data):undefined});
+const account=(action,data,cookie='')=>request('/api/account/'+action,{method:'POST',data,cookie});
+const session=r=>r.headers.getSetCookie().map(x=>x.split(';')[0]).join('; ');
+assert.equal((await request('/api/projects')).status,401);
+assert.equal((await request('/api/account/register',{method:'POST',origin:'https://example.com',data:{username:'qa_'+suffix,password}})).status,403);
+const r=await account('register',{username:'qa_'+suffix,password}),a=await r.json();assert.equal(r.status,200,JSON.stringify(a));assert.equal(a.user.kind,'account');assert.equal(a.recoveryCode.length,64);assert.match(r.headers.get('set-cookie'),/HttpOnly/);assert.match(r.headers.get('set-cookie'),/SameSite=Lax/);let cookie=session(r);
+assert.equal((await request('/api/account/me',{cookie})).status,200);
+assert.equal((await account('register',{username:'QA_'+suffix,password})).status,409);
+assert.equal((await account('login',{username:'qa_'+suffix,password:'wrong password forever'})).status,401);
+assert.equal((await account('register',{username:'short_'+suffix,password:'short'})).status,400);
+const other=await account('register',{username:'other_'+suffix,password});assert.equal(other.status,200,await other.clone().text());const cookie2=session(other);
+let project;
+try{
+ const created=await request('/api/projects',{method:'POST',cookie,data:{name:'Account isolation QA',settings:{sourceUrl:'https://youtu.be/ZhZPxRBP498'}}}),data=await created.json();assert.equal(created.status,201,JSON.stringify(data));project=data.project;
+ assert.equal(project.settings.sourceUrl,'https://www.youtube.com/watch?v=ZhZPxRBP498');
+ const listing=await (await request('/api/projects',{cookie:cookie2})).json();assert(!listing.projects.some(p=>p.id===project.id));
+ for(const method of ['GET','DELETE','PUT'])assert.equal((await request('/api/projects/'+project.id,{cookie:cookie2,method,...(method==='PUT'?{data:{name:'stolen',settings:{},assets:{},version:1}}:{})})).status,404);
+ const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6xVIAAAAASUVORK5CYII=','base64');
+ const upload=await fetch(base+`/api/assets?project=${project.id}&kind=background`,{method:'POST',headers:{Cookie:cookie,Origin:base,'Content-Type':'image/png','x-file-name':'qa.png'},body:png}),asset=await upload.json();assert.equal(upload.status,201,JSON.stringify(asset));
+ assert.equal((await request('/api/assets/'+asset.id,{cookie:cookie2})).status,404);assert.equal((await request('/api/assets/'+asset.id)).status,401);
+ assert.equal((await request('/api/projects',{cookie,method:'POST',data:{name:'bad link',settings:{sourceUrl:'javascript:alert(1)'}}})).status,400);
+ const recovery=await account('recover',{username:'qa_'+suffix,password:password+'x',recoveryCode:a.recoveryCode}),recovered=await recovery.json();assert.equal(recovery.status,200,JSON.stringify(recovered));assert.notEqual(recovered.recoveryCode,a.recoveryCode);assert.equal((await request('/api/projects',{cookie})).status,401);cookie=session(recovery);
+ assert.equal((await account('recover',{username:'qa_'+suffix,password,recoveryCode:a.recoveryCode})).status,401);
+ const logout=await account('logout',undefined,cookie);assert.equal(logout.status,200);assert.equal((await request('/api/projects',{cookie})).status,401);
+ const login=await account('login',{username:'QA_'+suffix,password:password+'x'});assert.equal(login.status,200,await login.clone().text());cookie=session(login);assert.equal((await request('/api/projects/'+project.id,{cookie})).status,200);
+ assert.equal((await request('/api/projects',{cookie:'atstudio_session='+randomBytes(32).toString('hex')})).status,401);
+ console.log('PASS: registration, case-insensitive login, password validation, cookie flags, CSRF, recovery rotation, revoked sessions, user-isolated projects/assets, source validation, logout and re-login.');
+}finally{if(project)assert.equal((await request('/api/projects/'+project.id,{cookie,method:'DELETE'})).status,200)}
+const rateUser='rate_'+suffix;for(let i=0;i<12;i++)assert.equal((await account('login',{username:rateUser,password})).status,401);assert.equal((await account('login',{username:rateUser,password})).status,429);console.log('PASS: persistent account rate limiting.');
