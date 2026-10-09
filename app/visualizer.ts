@@ -1,4 +1,5 @@
 import {cover} from './image-crop';
+import {animationDefaults,sequenceAnimation,type AnimationSettings} from './sequence-animation';
 export const spectrumStyles=[
  {id:'bloom',name:'Bloom',detail:'Rounded twin peaks'},
  {id:'fluid',name:'Fluid',detail:'Soft flowing outline'},
@@ -7,8 +8,8 @@ export const spectrumStyles=[
  {id:'bars',name:'Pillars',detail:'Rounded radial bars'},
  {id:'line',name:'Wave',detail:'Smooth mirrored wave'},
 ] as const;
-export type Settings={style:typeof spectrumStyles[number]['id'];color:string;color2:string;gradient:boolean;bass:number;mids:number;treble:number;bassCeiling:number;roundness:number;fill:number;smoothing:number;sensitivity:number;radius:number;amplitude:number;thickness:number;glow:number;rotation:number;x:number;y:number;particles:number;pulse:number;blur:number;dim:number;background:string;backgroundZoom:number;backgroundX:number;backgroundY:number;centerZoom:number;centerX:number;centerY:number;text:string;subtitle:string;font:string;fontSize:number;textColor:string;textX:number;textY:number;logoText:string;resolution:number;fps:number};
-export const defaults:Settings={style:'bloom',color:'#e5c9a4',color2:'#b78b63',gradient:true,bass:1.6,mids:0,treble:0,bassCeiling:180,roundness:.8,fill:.95,smoothing:.65,sensitivity:1,radius:18,amplitude:85,thickness:3,glow:24,rotation:0,x:50,y:46,particles:45,pulse:.45,blur:0,dim:25,background:'#19120f',backgroundZoom:1,backgroundX:50,backgroundY:50,centerZoom:1,centerX:50,centerY:50,text:'AFTER HOURS',subtitle:'ATSTUDIO  /  ORIGINAL MIX',font:'Arial',fontSize:32,textColor:'#ffffff',textX:50,textY:84,logoText:'AT',resolution:1080,fps:30};
+export type Settings=AnimationSettings & {style:typeof spectrumStyles[number]['id'];color:string;color2:string;gradient:boolean;bass:number;mids:number;treble:number;bassCeiling:number;roundness:number;fill:number;smoothing:number;sensitivity:number;radius:number;amplitude:number;thickness:number;glow:number;rotation:number;x:number;y:number;particles:number;pulse:number;blur:number;dim:number;background:string;backgroundZoom:number;backgroundX:number;backgroundY:number;centerZoom:number;centerX:number;centerY:number;text:string;subtitle:string;font:string;fontSize:number;textColor:string;textX:number;textY:number;logoText:string;resolution:number;fps:number};
+export const defaults:Settings={...animationDefaults,style:'bloom',color:'#e5c9a4',color2:'#b78b63',gradient:true,bass:1.6,mids:0,treble:0,bassCeiling:180,roundness:.8,fill:.95,smoothing:.65,sensitivity:1,radius:18,amplitude:85,thickness:3,glow:24,rotation:0,x:50,y:46,particles:45,pulse:.45,blur:0,dim:25,background:'#19120f',backgroundZoom:1,backgroundX:50,backgroundY:50,centerZoom:1,centerX:50,centerY:50,text:'AFTER HOURS',subtitle:'ATSTUDIO  /  ORIGINAL MIX',font:'Arial',fontSize:32,textColor:'#ffffff',textX:50,textY:84,logoText:'AT',resolution:1080,fps:30};
 export type Analysis={frames:Float32Array[];duration:number;rate:number;wave:number[]};
 export type Artwork={background?:HTMLImageElement;center?:HTMLImageElement};
 const N=4096;
@@ -61,21 +62,23 @@ export function smoothPath(c:CanvasRenderingContext2D,points:Point[],closed=true
  if(closed){const last=points.at(-1)!,first=points[0];c.moveTo((last.x+first.x)/2,(last.y+first.y)/2);for(let i=0;i<points.length;i++){const p=points[i],next=points[(i+1)%points.length];c.quadraticCurveTo(p.x,p.y,(p.x+next.x)/2,(p.y+next.y)/2);}c.closePath();}
  else{c.moveTo(points[0].x,points[0].y);for(let i=1;i<points.length-1;i++){const p=points[i],next=points[i+1];c.quadraticCurveTo(p.x,p.y,(p.x+next.x)/2,(p.y+next.y)/2);}const last=points.at(-1)!;c.lineTo(last.x,last.y);}
 }
-export function draw(canvas:HTMLCanvasElement,settings:Settings,time:number,a?:Analysis,art:Artwork={}){
+export function draw(canvas:HTMLCanvasElement,settings:Settings,time:number,a?:Analysis,art:Artwork={},sequenceDuration=a?.duration){
  const s={...defaults,...settings},c=canvas.getContext('2d')!,w=canvas.width,h=canvas.height,k=h/1080,bins=spectrum(a,time,s),bass=bins.reduce((sum,b)=>sum+b,0)/96;
+ const animation=sequenceAnimation(time,sequenceDuration,s),opacity=animation.opacity;
  c.clearRect(0,0,w,h);c.fillStyle=s.background;c.fillRect(0,0,w,h);
  if(art.background){c.save();c.filter=`blur(${s.blur*k}px)`;const pad=s.blur*k*3;cover(c,art.background,-pad*w/h,-pad,w+pad*2*w/h,h+pad*2,{zoom:s.backgroundZoom,x:s.backgroundX,y:s.backgroundY});c.restore();}
  else{const g=c.createRadialGradient(w*.52,h*.38,0,w*.5,h*.5,w*.7);g.addColorStop(0,s.color2+'30');g.addColorStop(.45,s.background);g.addColorStop(1,'#04080b');c.fillStyle=g;c.fillRect(0,0,w,h);}
  c.fillStyle=`rgba(0,0,0,${s.dim/100})`;c.fillRect(0,0,w,h);
+ if(s.fadeBackground&&opacity<1){c.fillStyle=`rgba(0,0,0,${1-opacity})`;c.fillRect(0,0,w,h);}
  const cx=w*s.x/100,cy=h*s.y/100,r=h*s.radius/100*(1+bass*s.pulse*.13);
  c.save();c.fillStyle=s.color;
- for(let i=0;i<s.particles*2;i++){const x=((Math.sin(i*127.1)*43758.5453%1+1)*w+Math.sin(time*.2+i)*20*k)%w,y=((Math.cos(i*311.7)*12345.678%1+1)*h-time*(6+i%12)*k%h+h)%h;c.globalAlpha=(.1+i%5/12)*(.5+bass*.5);c.beginPath();c.arc(x,y,(.6+i%3*.5)*k,0,Math.PI*2);c.fill();}c.restore();
- c.save();c.translate(cx,cy);c.rotate(s.rotation*Math.PI/180);
+ for(let i=0;i<s.particles*2;i++){const x=((Math.sin(i*127.1)*43758.5453%1+1)*w+Math.sin(time*.2+i)*20*k)%w,y=((Math.cos(i*311.7)*12345.678%1+1)*h-time*(6+i%12)*k%h+h)%h;c.globalAlpha=(.1+i%5/12)*(.5+bass*.5)*opacity;c.beginPath();c.arc(x,y,(.6+i%3*.5)*k,0,Math.PI*2);c.fill();}c.restore();
+ c.save();c.globalAlpha=opacity;c.translate(cx,cy+animation.y*h);c.scale(animation.scale,animation.scale);c.rotate(s.rotation*Math.PI/180+animation.rotation);
  const gradient=c.createLinearGradient(-r,-r,r,r);gradient.addColorStop(0,s.color);gradient.addColorStop(1,s.gradient?s.color2:s.color);
  c.strokeStyle=gradient;c.fillStyle=gradient;c.lineWidth=s.thickness*k;c.lineJoin='round';c.lineCap='round';c.shadowColor=s.color;c.shadowBlur=s.glow*k;
  if(s.style==='line'){
   const points=Array.from({length:96},(_,i)=>({x:(i/95-.5)*w*.8,y:-bins[Math.round(Math.abs(i/95*2-1)*95)]*s.amplitude*k*2}));
-  smoothPath(c,points,false);c.stroke();c.globalAlpha=.3;c.scale(1,-1);c.stroke();
+  smoothPath(c,points,false);c.stroke();c.globalAlpha=.3*opacity;c.scale(1,-1);c.stroke();
  }else{
   const points:Point[]=[];
   for(let i=0;i<96;i++){
@@ -92,15 +95,15 @@ export function draw(canvas:HTMLCanvasElement,settings:Settings,time:number,a?:A
    else points.push({x:dx*rr,y:dy*rr});
   }
   if(s.style!=='bars'){
-   smoothPath(c,points);if(s.style==='bloom'||s.style==='ribbon'){c.globalAlpha=s.fill;c.fill();c.globalAlpha=1;}
+   smoothPath(c,points);if(s.style==='bloom'||s.style==='ribbon'){c.globalAlpha=s.fill*opacity;c.fill();c.globalAlpha=opacity;}
    c.stroke();
-   if(s.style==='halo'){for(let layer=1;layer<=3;layer++){c.globalAlpha=.4/layer;smoothPath(c,points.map(p=>({x:p.x*(1+layer*.055),y:p.y*(1+layer*.055)})));c.stroke();}c.globalAlpha=1;}
+   if(s.style==='halo'){for(let layer=1;layer<=3;layer++){c.globalAlpha=.4/layer*opacity;smoothPath(c,points.map(p=>({x:p.x*(1+layer*.055),y:p.y*(1+layer*.055)})));c.stroke();}c.globalAlpha=opacity;}
   }
   c.shadowBlur=0;c.beginPath();c.arc(0,0,r,0,Math.PI*2);c.fillStyle='#100d0b';c.fill();c.save();c.clip();
   if(art.center)cover(c,art.center,-r,-r,r*2,r*2,{zoom:s.centerZoom,x:s.centerX,y:s.centerY});
   else{c.fillStyle='#f4f9f1';c.font=`900 ${r*.74}px Arial`;c.textAlign='center';c.textBaseline='middle';c.fillText(s.logoText,0,0,r*1.7);c.font=`${r*.095}px Arial`;c.fillStyle=s.color;c.fillText('S O U N D   I N   M O T I O N',0,r*.48,r*1.7);}
   c.restore();c.strokeStyle=s.color+'90';c.lineWidth=k;c.stroke();
  }
- c.restore();c.save();c.textAlign='center';c.textBaseline='middle';c.fillStyle=s.textColor;c.shadowColor='#000';c.shadowBlur=12*k;c.font=`700 ${s.fontSize*k}px "${s.font}"`;const tx=w*s.textX/100,ty=h*s.textY/100;c.fillText(s.text,tx,ty,w*.92);c.globalAlpha=.65;c.font=`400 ${Math.max(14,s.fontSize*.43)*k}px "${s.font}"`;c.fillText(s.subtitle,tx,ty+s.fontSize*k*1.15,w*.9);c.restore();
+ c.restore();c.save();c.globalAlpha=s.animateText?opacity:1;c.textAlign='center';c.textBaseline='middle';c.fillStyle=s.textColor;c.shadowColor='#000';c.shadowBlur=12*k;c.font=`700 ${s.fontSize*k}px "${s.font}"`;const tx=w*s.textX/100,ty=h*s.textY/100;c.fillText(s.text,tx,ty,w*.92);c.globalAlpha=.65*(s.animateText?opacity:1);c.font=`400 ${Math.max(14,s.fontSize*.43)*k}px "${s.font}"`;c.fillText(s.subtitle,tx,ty+s.fontSize*k*1.15,w*.9);c.restore();
 }
 export function demoBeat(ctx:AudioContext){const sr=ctx.sampleRate,duration=24,buffer=ctx.createBuffer(2,sr*duration,sr);for(let ch=0;ch<2;ch++){const data=buffer.getChannelData(ch);let seed=42;for(let i=0;i<data.length;i++){const t=i/sr,beat=t%.46875,hat=t%.234375,note=[55,65.406,49,73.416][Math.floor(t/1.875)%4];seed=seed*16807%2147483647;const noise=seed/1073741824-1,kick=Math.sin(2*Math.PI*(48*beat+8*(1-Math.exp(-beat*32))))*Math.exp(-beat*16)*.55,bass=Math.sin(2*Math.PI*note*t)*.16*(1-Math.exp(-beat*24)),hats=noise*Math.exp(-hat*95)*.08,snare=Math.floor(t/.46875)%2?noise*Math.exp(-beat*28)*.12:0,pad=(Math.sin(t*2*Math.PI*note*4+ch*.2)+Math.sin(t*2*Math.PI*note*6))*.025;data[i]=(kick+bass+hats+snare+pad)*Math.min(1,t*4,(duration-t)*3);}}return buffer;}
