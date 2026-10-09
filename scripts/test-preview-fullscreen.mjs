@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';
+await build({entryPoints:['app/preview-fullscreen.ts'],outfile:'.sites-runtime/preview-fullscreen-test.mjs',bundle:true,platform:'node',format:'esm'});
+const {tryPreviewFullscreen}=await import('../.sites-runtime/preview-fullscreen-test.mjs');
+assert.equal(await tryPreviewFullscreen({},{}),false,'Missing API must use browser-fill fallback');
+assert.equal(await tryPreviewFullscreen({requestFullscreen(){throw Error('unsupported')}},{}),false);
+assert.equal(await tryPreviewFullscreen({requestFullscreen:()=>Promise.reject(Error('denied'))},{}),false);
+assert.equal(await tryPreviewFullscreen({requestFullscreen:()=>Promise.resolve()},{}),false,'Resolution alone is not fullscreen');
+let called=false;
+assert.equal(await tryPreviewFullscreen({requestFullscreen(){called=true}},{fullscreenEnabled:false}),false);
+assert.equal(called,false);
+const doc={fullscreenEnabled:true,fullscreenElement:null};
+const element={requestFullscreen(){doc.fullscreenElement=this;return Promise.resolve()}};
+assert.equal(await tryPreviewFullscreen(element,doc),true);
+console.log('PASS: unsupported, disabled, rejected, throwing, inactive, and successful native fullscreen paths.');
