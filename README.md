@@ -12,7 +12,7 @@ ATStudio is a browser-based workspace for creating music visualizers and learnin
 - Reusable presets, private projects, and an account-owned song library.
 - MP4 export at 720p, 1080p, and 1440p, with 24, 30, or 60 fps output.
 
-## Learn
+## Learn (Beta)
 
 - MusicX chord recognition with editable chord boundaries, key, and tempo estimates.
 - Guitar chord diagrams and strumming guides with capo support.
@@ -26,7 +26,7 @@ Automatic analysis provides an editable starting point. Dense recordings can obs
 
 Username/password accounts keep projects, songs, presets, and appearance preferences together. Beige, paper, and night themes apply throughout the website, with a custom accent and reduced-motion option. Keep the recovery key provided at registration; password recovery does not use email.
 
-Press **Space** to play or pause in Studio and Learn. The shortcut stays inactive while editing text, using form controls, or working in a dialog. Preview volume does not alter exported audio.
+Press **Space** to play or pause in Studio and Learn (Beta). The shortcut stays inactive while editing text, using form controls, or working in a dialog. Preview volume does not alter exported audio.
 
 ## Local development
 
