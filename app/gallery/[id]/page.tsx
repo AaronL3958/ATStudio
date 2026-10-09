@@ -1,6 +1,7 @@
 import type {Metadata} from 'next';
 import {headers} from 'next/headers';
 import GalleryView from '../../gallery-view';
+import VideoPlayer from '../../video-player';
 import {getAppUser} from '../../account-auth';
 import {db} from '../../api/common';
 import type {PostRow} from '../../api/gallery/common';
@@ -18,6 +19,6 @@ export async function generateMetadata({params}:Props):Promise<Metadata>{
 }
 export default async function Page({params}:Props){
  const {id}=await params,user=await getAppUser();
- if(!user){const row=await publicPost(id);if(row)return <div className="app gallery-app"><header className="topbar"><a className="brand" href="/">AT<span>Studio</span></a><a className="button" href="/gallery">Explore the gallery</a></header><main className="gallery-main public-video-page"><a className="gallery-back" href="/gallery">← ATStudio gallery</a><article className="gallery-detail"><div className="gallery-detail-heading"><div><span className="eyebrow">SOUND IN MOTION</span><h1>{row.title}</h1><p>By <strong>{row.author}</strong></p></div></div><video className="public-gallery-video" controls playsInline preload="metadata" poster={`/api/public-video/${row.video_token}/cover.jpg`} src={`/api/public-video/${row.video_token}/video.mp4`}/><div className="gallery-description"><p>{row.description}</p><p className="help">Shared publicly by the creator. Sign in to ATStudio to explore the community and create your own visualizer.</p><a className="button primary" href="/studio">Create with ATStudio</a></div></article></main></div>}
+ if(!user){const row=await publicPost(id);if(row)return <div className="app gallery-app"><header className="topbar"><a className="brand" href="/">AT<span>Studio</span></a><a className="button" href="/gallery">Explore the gallery</a></header><main className="gallery-main public-video-page"><a className="gallery-back" href="/gallery">← ATStudio gallery</a><article className="gallery-detail"><div className="gallery-detail-heading"><div><span className="eyebrow">SOUND IN MOTION</span><h1>{row.title}</h1><p>By <strong>{row.author}</strong></p></div></div><VideoPlayer title={row.title} poster={`/api/public-video/${row.video_token}/cover.jpg`} src={`/api/public-video/${row.video_token}/video.mp4`}/><div className="gallery-description"><p>{row.description}</p><p className="help">Shared publicly by the creator. Sign in to ATStudio to explore the community and create your own visualizer.</p><a className="button primary" href="/studio">Create with ATStudio</a></div></article></main></div>}
  return <GalleryView id={id} initialUser={user?{name:user.name,email:user.email,kind:user.kind}:null}/>;
 }

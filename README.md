@@ -118,3 +118,9 @@ Publishing uses the hosting workflow to build, synchronize source, package, and 
 - MP4 output requires working H.264/AAC WebCodecs encoders. Desktop Chrome or Edge is recommended.
 - Long 1440p renders can require substantial memory. There is no server render queue or resumable export.
 - Uploaded audio is required; streaming-service links are not supported.
+
+## Mobile video playback
+
+Studio previews include a **Video player and Picture in Picture** button. When a browser does not support fullscreen for the live canvas, the fullscreen button opens the native-video preparation dialog instead of presenting a browser-sized overlay as fullscreen. The full-song 720p video is prepared locally and never uploaded or published by this action.
+
+Rendered exports and gallery posts with public videos use a native HTML video player immediately. Controls support Safari's video presentation APIs and standard fullscreen/Picture in Picture APIs where available. Device and embedded-browser restrictions still apply; ATStudio cannot force an unavailable browser feature. Open restricted in-app links in Safari or Chrome. A physical iPhone is needed to verify OS-level fullscreen and Picture in Picture behavior.

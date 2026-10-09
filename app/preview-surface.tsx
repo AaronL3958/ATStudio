@@ -1,11 +1,11 @@
 'use client';
 import {useEffect,useRef,useState,type ReactNode} from 'react';
 import {createPortal} from 'react-dom';
-import {Maximize2,Pause,Play,X} from 'lucide-react';
+import {Maximize2,Pause,Play,PictureInPicture2,X} from 'lucide-react';
 import {tryPreviewFullscreen} from './preview-fullscreen';
 import './preview-surface.css';
 
-export default function PreviewSurface({children,playing,ready,onPlay}:{children:ReactNode;playing:boolean;ready:boolean;onPlay:()=>Promise<void>}) {
+export default function PreviewSurface({children,playing,ready,onPlay,onVideo}:{children:ReactNode;playing:boolean;ready:boolean;onPlay:()=>Promise<void>;onVideo?:()=>void}) {
   const [mode,setMode]=useState<'native'|'fallback'|null>(null);
   const root=useRef<HTMLDivElement>(null), launch=useRef<HTMLButtonElement>(null), done=useRef<HTMLButtonElement>(null);
   const mounted=useRef(false),pending=useRef(false);
@@ -19,7 +19,7 @@ export default function PreviewSurface({children,playing,ready,onPlay}:{children
     if(pending.current||!root.current)return;
     pending.current=true;
     const native=await tryPreviewFullscreen(root.current,document);
-    if(mounted.current)setMode(native?'native':'fallback');
+    if(mounted.current){if(!native&&onVideo)onVideo();else setMode(native?'native':'fallback')}
     pending.current=false;
   }
   async function close(){
@@ -71,7 +71,7 @@ export default function PreviewSurface({children,playing,ready,onPlay}:{children
   },[mode]);
   const panel=<div ref={root} className={`canvas-wrap preview-surface${mode?' preview-expanded':''}${mode==='fallback'?' preview-fallback':''}`} data-preview-mode={mode??'inline'} role={mode==='fallback'?'dialog':undefined} aria-modal={mode==='fallback'?true:undefined} aria-label={mode?'Expanded visualizer preview':undefined}>
     {children}
-    {mode?<div className="preview-toolbar"><button className="preview-control" disabled={!ready} onClick={()=>void onPlay()} aria-label={playing?'Pause preview':'Play preview'}>{playing?<Pause size={19}/>:<Play size={19}/>}<span>{playing?'Pause':'Play'}</span></button><button ref={done} className="preview-control" onClick={()=>void close()} aria-label="Close fullscreen preview"><X size={19}/><span>Done</span></button></div>:<button ref={launch} className="preview-control preview-expand" aria-label="Fullscreen preview" title="Expand preview" onClick={()=>void expand()}><Maximize2 size={19}/></button>}
+    {mode?<div className="preview-toolbar"><button className="preview-control" disabled={!ready} onClick={()=>void onPlay()} aria-label={playing?'Pause preview':'Play preview'}>{playing?<Pause size={19}/>:<Play size={19}/>}<span>{playing?'Pause':'Play'}</span></button><button ref={done} className="preview-control" onClick={()=>void close()} aria-label="Close fullscreen preview"><X size={19}/><span>Done</span></button></div>:<>{onVideo&&<button className="preview-control preview-video" disabled={!ready} onClick={onVideo} aria-label="Video player and Picture in Picture" title="Native video player & Picture in Picture"><PictureInPicture2 size={19}/></button>}<button ref={launch} disabled={!ready} className="preview-control preview-expand" aria-label="Fullscreen preview" title="Expand preview" onClick={()=>void expand()}><Maximize2 size={19}/></button></>}
   </div>;
   // The renderer reads the live canvas ref each frame; audio and playback stay in Studio.
   return mode==='fallback'?createPortal(panel,document.body):panel;
