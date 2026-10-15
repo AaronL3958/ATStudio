@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
 import {randomBytes,createHash} from 'node:crypto';
-import fs from 'node:fs/promises';
 const base='http://127.0.0.1:5173';
 async function account(){const r=await fetch(base+'/api/account/register',{method:'POST',headers:{Origin:base,'Content-Type':'application/json'},body:JSON.stringify({username:'songs_'+randomBytes(5).toString('hex'),password:randomBytes(24).toString('hex')})});assert.equal(r.status,200);return r.headers.getSetCookie().map(v=>v.split(';')[0]).join('; ')}
-const first=await account(),second=await account(),audio=await fs.readFile('.sites-runtime/Learning-test-C-Am-F-G.wav'),hash=createHash('sha256').update(audio).digest('hex');
+// Self-contained one-second PCM fixture; no dependency on another test run.
+const audio=Buffer.alloc(44+16000);
+audio.write('RIFF',0);audio.writeUInt32LE(audio.length-8,4);audio.write('WAVEfmt ',8);audio.writeUInt32LE(16,16);audio.writeUInt16LE(1,20);audio.writeUInt16LE(1,22);audio.writeUInt32LE(8000,24);audio.writeUInt32LE(16000,28);audio.writeUInt16LE(2,32);audio.writeUInt16LE(16,34);audio.write('data',36);audio.writeUInt32LE(16000,40);
+for(let i=0;i<8000;i++)audio.writeInt16LE(Math.round(Math.sin(2*Math.PI*220*i/8000)*8000),44+i*2);
+const first=await account(),second=await account(),hash=createHash('sha256').update(audio).digest('hex');
 const req=(path,{cookie=first,method='GET',data,raw,origin=base}={})=>fetch(base+path,{method,headers:{Cookie:cookie,Origin:origin,...(data?{'Content-Type':'application/json'}:raw?{'Content-Type':'audio/wav','x-file-name':'QA-song.wav'}:{})},body:data?JSON.stringify(data):raw});
 assert.equal((await req('/api/songs',{cookie:''})).status,401);
 assert.equal((await req('/api/songs?hash='+hash,{method:'POST',raw:audio,origin:'https://example.com'})).status,403);

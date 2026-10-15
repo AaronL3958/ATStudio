@@ -1,8 +1,8 @@
 # ATStudio
 
-**Sound in motion. Music at your fingertips.**
+**Sound in motion.**
 
-ATStudio is a browser-based workspace for creating music visualizers and learning songs. Turn a track into a finished video, or explore its chords and build a playable piano arrangement.
+ATStudio is a browser-based workspace for creating and sharing music visualizers. Turn a track into a finished video, save your signature look, and share your work in the community gallery.
 
 ## Studio
 
@@ -30,21 +30,11 @@ Publish a playable visualizer directly from **Studio → Share**, or after expor
 
 Only publish music, artwork, and fonts you have permission to share.
 
-## Learn (Beta)
-
-- MusicX chord recognition with editable chord boundaries, key, and tempo estimates.
-- Guitar chord diagrams and strumming guides with capo support.
-- Simplified piano arrangements: a right-hand melody and left-hand chord voicings.
-- Synchronized score playback, practice loops, speed and volume controls.
-- MIDI, MusicXML, and printable sheet music export.
-
-Automatic analysis provides an editable starting point. Dense recordings can obscure harmony and melody; review the result before practicing. Piano arrangement is not guaranteed note-for-note transcription.
-
 ## Accounts and appearance
 
 Username/password accounts keep projects, songs, presets, and appearance preferences together. Beige, paper, and night themes apply throughout the website, with a custom accent and reduced-motion option. Keep the recovery key provided at registration; password recovery does not use email.
 
-Press **Space** to play or pause in Studio and Learn (Beta). The shortcut stays inactive while editing text, using form controls, or working in a dialog. Preview volume does not alter exported audio.
+Press **Space** to play or pause in Studio. The shortcut stays inactive while editing text, using form controls, or working in a dialog. Preview volume does not alter exported audio.
 
 ## Local development
 
@@ -73,8 +63,6 @@ Clone the repository on the second computer and open that folder in your editor.
 npx tsc --noEmit
 node scripts/test-factory-presets.mjs
 node scripts/test-background-effects.mjs
-node scripts/test-arrangement.mjs
-node scripts/test-learning.mjs
 node scripts/verify-audio.mjs
 ```
 
@@ -97,13 +85,12 @@ Use a disposable local database for API tests. They create synthetic accounts an
 | Interface | React, TypeScript, Vinext, Vite |
 | Visualizer | Canvas 2D and Web Audio; deterministic analysis for preview and export |
 | Video export | Mediabunny and WebCodecs; H.264 video and stereo AAC |
-| Music analysis | Browser workers, MusicX ONNX models, and Basic Pitch |
 | Application server | Cloudflare Workers |
 | Persistence | D1 for account/project metadata; private R2 objects for uploaded files |
 
-The main editor is in `app/studio.tsx`; learning playback and analysis controls are in `app/learn.tsx`. The canvas renderer is in `app/visualizer.ts`, and video export is in `app/export-video.ts`. API routes enforce account ownership. Database schema changes belong in `db/`; generated SQL migrations live in `drizzle/` and must remain immutable after deployment.
+The main editor is in `app/studio.tsx`. The canvas renderer is in `app/visualizer.ts`, and video export is in `app/export-video.ts`. API routes enforce account ownership. Database schema changes belong in `db/`; generated SQL migrations live in `drizzle/` and must remain immutable after deployment.
 
-Models and their third-party licenses are included in `public/models/`. Analysis assets load only when needed, keeping normal Studio editing independent of transcription work.
+Spectrum analysis runs locally on the uploaded audio. Gallery posts reuse precomputed spectrum data for playback.
 
 ## Deployment
 

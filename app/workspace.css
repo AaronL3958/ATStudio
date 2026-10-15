@@ -2,14 +2,8 @@
 html[data-studio-theme=paper]{--workspace-bg:#f2f2f0;--workspace-panel:#ffffff;--workspace-line:#cececa;--workspace-muted:#60605c;--workspace-text:#252522;--workspace-inset:#e7e7e3;--workspace-hover:#deded8;--workspace-input:#fff}
 html[data-studio-theme=night]{--workspace-bg:#171614;--workspace-panel:#252320;--workspace-line:#4e4941;--workspace-muted:#c7bdb0;--workspace-text:#f2eade;--workspace-inset:#302c27;--workspace-hover:#433b32;--workspace-input:#191715}
 html[data-studio-theme=night] .app{color-scheme:dark}
-html[data-studio-theme=night] .app :is(.learn-hero,.chord-stage),html[data-studio-theme=paper] .app :is(.learn-hero,.chord-stage){background:var(--panel)}
-html .app :is(button.primary,.button.primary,.play-button,.style-options button.active,.preset.selected,.instrument-switch .active,.chord-timeline .active){background:var(--accent);color:var(--user-accent-ink,#fff);border-color:var(--accent)}
-html .app :is(.preset.selected small,.chord-timeline .active small,.chord-timeline .active span){color:inherit}
-html[data-studio-theme=night] .app :is(.guitar-diagram text,.guitar-diagram .diagram-title){fill:var(--text)}
-html .app .lesson-metrics{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:stretch;gap:12px}
-html .app .lesson-metrics label{display:grid;grid-template-rows:minmax(2.8em,auto) 46px;gap:8px;align-items:end;font-size:12px;line-height:1.4;min-width:0}
-html .app .lesson-metrics label>span{align-self:end;min-height:2.8em;display:flex;align-items:end}
-html .app .lesson-metrics :is(select,input){margin:0;width:100%;height:46px;box-sizing:border-box;padding:10px;min-width:0}
+html .app :is(button.primary,.button.primary,.play-button,.style-options button.active,.preset.selected){background:var(--accent);color:var(--user-accent-ink,#fff);border-color:var(--accent)}
+html .app :is(.preset.selected small){color:inherit}
 .app{--bg:var(--workspace-bg,#f1e9dc);--panel:var(--workspace-panel,#fbf7ef);--line:var(--workspace-line,#d5c7b5);--muted:var(--workspace-muted,#756451);--accent:var(--user-accent,#79553a);--text:var(--workspace-text,#231c17);--border:var(--line);background:var(--bg);color:var(--text);min-height:100vh;color-scheme:light}
 .app button{background:var(--panel);border-color:var(--line)}
 .app button:hover{background:var(--workspace-hover,#e8dbc8);border-color:#a48a6c}
@@ -22,17 +16,14 @@ html .app .lesson-metrics :is(select,input){margin:0;width:100%;height:46px;box-
 .app .topbar .brand small{color:#dbc4a6}
 .app .avatar{background:#35291f;color:#efdab9}
 .app .section-title{background:var(--workspace-inset,#ede2d2);color:var(--text)}
-.app :is(.assets-panel,.controls-panel,.project-card,.lesson-sidebar,.piano-stage,.chord-chart,.note-editor,.video-panel){background:var(--panel);box-shadow:0 8px 30px #5c3a1710}
-.app :is(.timeline,.palette,.export-summary span,.lesson-player,.instrument-switch,.analysis-progress,.learn-sources){background:var(--workspace-inset,#e9dfcf);color:var(--text);border-color:var(--line)}
-.app .learn-hero{background:linear-gradient(115deg,#fbf7ee,#e4d2b9);border-color:var(--line)}
-.app .chord-stage{background:radial-gradient(ellipse at 15% 30%,#fffdf8,transparent 80%),#eee2d0;border-color:var(--line)}
-.app :is(.control-body>label,.text-field,.checkbox,.palette span,.studio-note p,.studio-note strong,.tip p,.tip span,.preview-heading,.preview-heading>span:first-child,.ruler,.time em,.file-name,.project-card-meta small,.modal>p,.empty-state p,.empty-state small,.learn-workspace .eyebrow,.guitar-tab,.chord-quality,.next-chord strong){color:var(--muted)}
-.app :is(.help,.learning-footnote,.lesson-options summary,.note-editor summary,.slider-label b,.text-button){color:var(--muted)}
-.app :is(.text-field input:not([type=color]),.text-field select,.text-field select option,.learning-grid input,.learning-grid select,.library-search input){background:var(--workspace-input,#fffaf2);color:var(--text);border-color:#baa58b}
-.app :is(.style-options button,.chord-timeline button,.preset){background:var(--workspace-inset,#ede2d1);color:var(--text);border-color:var(--line)}
-.app :is(.style-options button.active,.preset.selected,.instrument-switch .active,.chord-timeline .active){background:var(--accent);color:#fff6e9;border-color:var(--accent)}
-.app :is(.preset small,.chord-timeline small,.chord-timeline span){color:#765f49}
-.app :is(.preset.selected small,.chord-timeline .active small,.chord-timeline .active span){color:#f0ddc7}
+.app :is(.assets-panel,.controls-panel,.project-card){background:var(--panel);box-shadow:0 8px 30px #5c3a1710}
+.app :is(.timeline,.palette,.export-summary span){background:var(--workspace-inset,#e9dfcf);color:var(--text);border-color:var(--line)}
+.app :is(.control-body>label,.text-field,.checkbox,.palette span,.studio-note p,.studio-note strong,.tip p,.tip span,.preview-heading,.preview-heading>span:first-child,.ruler,.time em,.file-name,.project-card-meta small,.modal>p,.empty-state p,.empty-state small){color:var(--muted)}
+.app :is(.help,.slider-label b,.text-button){color:var(--muted)}
+.app :is(.style-options button,.preset){background:var(--workspace-inset,#ede2d1);color:var(--text);border-color:var(--line)}
+.app :is(.style-options button.active,.preset.selected){background:var(--accent);color:#fff6e9;border-color:var(--accent)}
+.app :is(.preset small){color:#765f49}
+.app :is(.preset.selected small){color:#f0ddc7}
 .app .mini-ring{border-color:#a48259;box-shadow:0 0 25px #c89f6b30}
 .app .preset.selected .mini-ring{border-color:#e6c698}
 .app .modal{background:var(--panel);color:var(--text);border-color:#b69976;box-shadow:0 25px 100px #27170e55}
@@ -42,14 +33,7 @@ html .app .lesson-metrics :is(select,input){margin:0;width:100%;height:46px;box-
 .app .upload-area:hover{background:var(--workspace-hover,#ebdcc5)}
 .app .toast,.app .busy-bar{background:#2e231b;color:#f9ead6;border-color:#947656}
 .app .error{background:#f7e0d5;color:#842e1b!important}
-.app .guitar-diagram line{stroke:#8a6b4f}
-.app .guitar-diagram text{fill:#5d4734}
-.app .guitar-diagram .diagram-title{fill:#342519}
-.app .guitar-diagram circle,.app .guitar-diagram .barre{fill:var(--accent);stroke:var(--accent)}
-.app .guitar-diagram .fret-number{fill:#fff8ed}
-.app .right-label{color:#95621e}.app .left-label{color:var(--accent)}
-.app .lesson-metrics label,.app .lesson-sidebar .text-field,.app .lesson-options summary,.app .chord-edit label{font-size:12px}
-.app .learning-footnote,.app .chord-quality,.app .chart-heading button,.app .score-downloads button{font-size:12px}
+.app .chart-heading button{font-size:12px}
 .app .library-button{margin-top:12px}
 .library-search{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:18px 0}
 .library-search input{border:0;outline-offset:3px;min-width:0;width:100%;background:transparent!important}
@@ -59,16 +43,10 @@ html .app .lesson-metrics :is(select,input){margin:0;width:100%;height:46px;box-
 .song-list b{display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:300px}
 .song-list small{display:block;color:var(--muted);font-size:12px;margin-top:5px}
 .song-list em{font-size:12px;white-space:nowrap;color:var(--accent)}
-@media(max-width:640px){.app .learn-workspace .actions{flex-wrap:wrap}.song-list b{max-width:180px}.song-list em{display:none}}
+@media(max-width:640px){.song-list b{max-width:180px}.song-list em{display:none}}
 
 .app .preset-library-tabs button{background:var(--panel);color:var(--text);border-color:var(--line)}
 .app .preset-library-tabs button[aria-pressed=true]{background:var(--accent);color:var(--user-accent-ink,#fff);border-color:var(--accent);font-weight:600}
-.app .lesson-player-top{flex-wrap:wrap}
-.app .lesson-volume{display:flex;align-items:center;gap:8px;margin-left:auto;font-size:12px;color:var(--text)}
-.app .lesson-volume input{width:100px;min-width:60px;padding:0;accent-color:var(--accent)}
-.app .lesson-volume output{min-width:34px;font-variant-numeric:tabular-nums;font-size:11px}
-.app .lesson-player-top .speed-label{margin-left:0}
-@media(max-width:1100px){.app .lesson-volume{order:4;width:100%;margin-left:0}.app .lesson-volume input{flex:1;max-width:240px}.app .lesson-player-top .speed-label{margin-left:auto}}
 
 /* Built-in looks use actual renderer thumbnails, separate from saved presets. */
 .app .factory-presets{container:factory-looks / inline-size;margin-top:32px;padding-top:24px;border-top:1px solid var(--line)}
