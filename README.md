@@ -121,6 +121,8 @@ Publishing uses the hosting workflow to build, synchronize source, package, and 
 
 ## Mobile video playback
 
-Studio previews include a **Video player and Picture in Picture** button. When a browser does not support fullscreen for the live canvas, the fullscreen button opens the native-video preparation dialog instead of presenting a browser-sized overlay as fullscreen. The full-song 720p video is prepared locally and never uploaded or published by this action.
+Studio feeds its live canvas and song audio directly into a native video element, without encoding, uploading, or preparing an MP4. On iPhone, the fullscreen button requests native video fullscreen. The **Live video player and Picture in Picture** button requests live Picture in Picture. Native play/pause controls synchronize with Studio, and audio plays through one output at a time. Use Studio’s timeline to seek.
+
+Live canvas playback can pause when a mobile browser throttles background rendering. Live-stream presentation support also varies by browser and OS. A **Rendered video fallback** remains available explicitly for these cases; it prepares a private, local 720p video. No render is started automatically when opening the live player.
 
 Rendered exports and gallery posts with public videos use a native HTML video player immediately. Controls support Safari's video presentation APIs and standard fullscreen/Picture in Picture APIs where available. Device and embedded-browser restrictions still apply; ATStudio cannot force an unavailable browser feature. Open restricted in-app links in Safari or Chrome. A physical iPhone is needed to verify OS-level fullscreen and Picture in Picture behavior.

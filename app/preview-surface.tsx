@@ -3,11 +3,14 @@ import {useEffect,useRef,useState,type ReactNode} from 'react';
 import {createPortal} from 'react-dom';
 import {Maximize2,Pause,Play,PictureInPicture2,X} from 'lucide-react';
 import {tryPreviewFullscreen} from './preview-fullscreen';
+import LivePreviewVideo,{type LivePreviewHandle} from './live-preview-video';
+import type {LiveAudioConnection} from './live-preview-stream';
 import './preview-surface.css';
 
-export default function PreviewSurface({children,playing,ready,onPlay,onVideo}:{children:ReactNode;playing:boolean;ready:boolean;onPlay:()=>Promise<void>;onVideo?:()=>void}) {
+export default function PreviewSurface({children,playing,ready,onPlay,onVideo,onConnectLiveAudio,onLivePlayback}:{children:ReactNode;playing:boolean;ready:boolean;onPlay:()=>Promise<void>;onVideo?:()=>void;onConnectLiveAudio?:()=>LiveAudioConnection;onLivePlayback?:(playing:boolean)=>void}) {
   const [mode,setMode]=useState<'native'|'fallback'|null>(null);
   const root=useRef<HTMLDivElement>(null), launch=useRef<HTMLButtonElement>(null), done=useRef<HTMLButtonElement>(null);
+  const live=useRef<LivePreviewHandle>(null);
   const mounted=useRef(false),pending=useRef(false);
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false}},[]);
   useEffect(()=>{
@@ -17,9 +20,10 @@ export default function PreviewSurface({children,playing,ready,onPlay,onVideo}:{
   },[]);
   async function expand(){
     if(pending.current||!root.current)return;
+    if(live.current?.isSafariVideo()){live.current.open('fullscreen');return}
     pending.current=true;
     const native=await tryPreviewFullscreen(root.current,document);
-    if(mounted.current){if(!native&&onVideo)onVideo();else setMode(native?'native':'fallback')}
+    if(mounted.current){if(!native&&live.current)live.current.open('fullscreen');else if(!native&&onVideo)onVideo();else setMode(native?'native':'fallback')}
     pending.current=false;
   }
   async function close(){
@@ -71,7 +75,8 @@ export default function PreviewSurface({children,playing,ready,onPlay,onVideo}:{
   },[mode]);
   const panel=<div ref={root} className={`canvas-wrap preview-surface${mode?' preview-expanded':''}${mode==='fallback'?' preview-fallback':''}`} data-preview-mode={mode??'inline'} role={mode==='fallback'?'dialog':undefined} aria-modal={mode==='fallback'?true:undefined} aria-label={mode?'Expanded visualizer preview':undefined}>
     {children}
-    {mode?<div className="preview-toolbar"><button className="preview-control" disabled={!ready} onClick={()=>void onPlay()} aria-label={playing?'Pause preview':'Play preview'}>{playing?<Pause size={19}/>:<Play size={19}/>}<span>{playing?'Pause':'Play'}</span></button><button ref={done} className="preview-control" onClick={()=>void close()} aria-label="Close fullscreen preview"><X size={19}/><span>Done</span></button></div>:<>{onVideo&&<button className="preview-control preview-video" disabled={!ready} onClick={onVideo} aria-label="Video player and Picture in Picture" title="Native video player & Picture in Picture"><PictureInPicture2 size={19}/></button>}<button ref={launch} disabled={!ready} className="preview-control preview-expand" aria-label="Fullscreen preview" title="Expand preview" onClick={()=>void expand()}><Maximize2 size={19}/></button></>}
+    {onConnectLiveAudio&&onLivePlayback&&<LivePreviewVideo ref={live} ready={ready} playing={playing} canvas={()=>root.current?.querySelector('canvas')??null} connectAudio={onConnectLiveAudio} onPlayback={onLivePlayback} onRender={onVideo}/>}
+    {mode?<div className="preview-toolbar"><button className="preview-control" disabled={!ready} onClick={()=>void onPlay()} aria-label={playing?'Pause preview':'Play preview'}>{playing?<Pause size={19}/>:<Play size={19}/>}<span>{playing?'Pause':'Play'}</span></button><button ref={done} className="preview-control" onClick={()=>void close()} aria-label="Close fullscreen preview"><X size={19}/><span>Done</span></button></div>:<>{onVideo&&<button className="preview-control preview-video" disabled={!ready} onClick={()=>live.current?live.current.open('pip'):onVideo?.()} aria-label={onConnectLiveAudio?"Live video player and Picture in Picture":"Video player and Picture in Picture"} title={onConnectLiveAudio?"Live player · no render":"Native video player & Picture in Picture"}><PictureInPicture2 size={19}/></button>}<button ref={launch} disabled={!ready} className="preview-control preview-expand" aria-label="Fullscreen preview" title="Expand preview" onClick={()=>void expand()}><Maximize2 size={19}/></button></>}
   </div>;
   // The renderer reads the live canvas ref each frame; audio and playback stay in Studio.
   return mode==='fallback'?createPortal(panel,document.body):panel;
